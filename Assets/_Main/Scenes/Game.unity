@@ -437,6 +437,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 173561929178c34478011d3646fec8ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  minConnections: 4
+  needTouching: 0
+  rowCol: 0
   tilemap: {fileID: 2122898115}
   initialPositions: []
   slotPieces:

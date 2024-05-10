@@ -5,24 +5,36 @@ using UnityEngine.Tilemaps;
 [RequireComponent(typeof(GameBoardAnimation))]
 public class GameBoard : MonoBehaviour
 {
+    public static GameBoard instance;
     //Board hold a list of BoardAction that get ticked on its Update. Useful for Bonus to add timed effects and the like.
     public interface IBoardAction
     {
         //Return true if should continue, false if the action done 
         bool Tick();
     }
-    public Tilemap tilemap;
+    [Header("Settings")]
+    [SerializeField] private int minConnections;
+    public int MinConnections => minConnections;
+    [SerializeField] private bool needTouching;
+    [SerializeField] private bool rowCol;
+
+    [SerializeField] private Tilemap tilemap;
 
     [SerializeField] private List<Vector3Int> initialPositions = new List<Vector3Int>();
     [SerializeField] GameObject[] slotPieces;
 
+    public Dictionary<Vector3Int, BoardCell> Board => board;
     Dictionary<Vector3Int, BoardCell> board = new Dictionary<Vector3Int, BoardCell>();
+
     private GameObject randomPiece => slotPieces[Random.Range(0, slotPieces.Length)];
     private GameBoardAnimation gameBoardAnimation;
 
     private List<IBoardAction> boardActions = new List<IBoardAction>();
     private void Awake()
     {
+        if (GameBoard.instance) Destroy(gameObject);
+        else GameBoard.instance = this;
+
         gameBoardAnimation = GetComponent<GameBoardAnimation>();
     }
 
@@ -78,7 +90,10 @@ public class GameBoard : MonoBehaviour
                 // Hacer algo con el tile obtenido (por ejemplo, imprimir su nombre)
                 if (tile != null)
                 {
-                    if (tile.name == "initial_piece") initialPositions.Add(tilePos);
+                    if (tile.name == "initial_piece")
+                    {
+                        initialPositions.Add(tilePos);
+                    }
                     if (tile.name == "space_pieces")
                     {
                         BoardCell boardCell = new BoardCell();
@@ -87,6 +102,7 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
+        tilemap.gameObject.SetActive(false);
     }
 
     IEnumerator CheckConnectedPieces()
@@ -97,24 +113,33 @@ public class GameBoard : MonoBehaviour
         Debug.Log("Looking for connected pieces");
         foreach (var cell in board)
         {
-            Vector3Int cellPosition = Vector3Int.RoundToInt(cell.Key);
-            Vector3Int[] directions = { Vector3Int.down, Vector3Int.up, Vector3Int.left, Vector3Int.right };
-            foreach (Vector3Int direction in directions)
+            List<BoardCell> connectedCells = new List<BoardCell>();
+            int connectionAmount = 0;
+            if (cell.Value.IsConnected(cell.Key, ref connectedCells, ref connectionAmount).Item1)
             {
-                Vector3Int adjacentPos = cellPosition + direction;
-
-                // Verificar si la posición adyacente está dentro del tablero y si hay una pieza en esa posición
-                if (board.ContainsKey(adjacentPos) && board[adjacentPos].slotPiece != null)
+                foreach (BoardCell connectedCell in connectedCells)
                 {
-                    Debug.Log("EXIST!");
-                    if (board[adjacentPos].slotPiece.id == cell.Value.slotPiece.id)
-                    {
-                        Debug.Log("THEY ARE THE SAME");
-                        board[adjacentPos].slotPiece.Grow(true);
-                        cell.Value.slotPiece.Grow(true);
-                    }
+                    connectedCell.slotPiece.Grow(true);
                 }
             }
+            // Vector3Int cellPosition = Vector3Int.RoundToInt(cell.Key);
+            // Vector3Int[] directions = { Vector3Int.down, Vector3Int.up, Vector3Int.left, Vector3Int.right };
+            // foreach (Vector3Int direction in directions)
+            // {
+            //     Vector3Int adjacentPos = cellPosition + direction;
+
+            //     // Verificar si la posición adyacente está dentro del tablero y si hay una pieza en esa posición
+            //     if (board.ContainsKey(adjacentPos) && board[adjacentPos].slotPiece != null)
+            //     {
+            //         Debug.Log("EXIST!");
+            //         if (board[adjacentPos].slotPiece.id == cell.Value.slotPiece.id)
+            //         {
+            //             Debug.Log("THEY ARE THE SAME");
+            //             board[adjacentPos].slotPiece.Grow(true);
+            //             cell.Value.slotPiece.Grow(true);
+            //         }
+            //     }
+            // }
         }
     }
 
